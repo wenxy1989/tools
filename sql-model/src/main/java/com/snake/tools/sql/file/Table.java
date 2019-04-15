@@ -5,6 +5,11 @@ public class Table {
     private String name;
     private String[] columns;
 
+    public Table(String name,String... columns){
+        this.name = name;
+        this.columns = columns;
+    }
+
     public String getName() {
         return name;
     }
@@ -19,5 +24,9 @@ public class Table {
 
     public void setColumns(String[] columns) {
         this.columns = columns;
+    }
+
+    public String getInsertStartString(){
+        return String.format("INSERT INTO `%s` VALUES ",this.name.toUpperCase());
     }
 }

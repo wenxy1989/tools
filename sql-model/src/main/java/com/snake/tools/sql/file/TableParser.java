@@ -5,10 +5,14 @@ import java.io.IOException;
 public class TableParser {
 
     public void parse(String file) throws IOException {
-        TableSql tableSql = new TableSql(file);
+        String tableName = "base_label";
+        tableName = "cgm_wear";
+        TableSql tableSql = new TableSql(file,new Table(tableName,"id","name"));
         while (tableSql.available()){
-            String line = tableSql.readString();
-            System.out.println(line);
+            String value = tableSql.getValue();
+            if(tableSql.isInsertLine()) {
+                System.out.println(value);
+            }
         }
         tableSql.close();
     }
