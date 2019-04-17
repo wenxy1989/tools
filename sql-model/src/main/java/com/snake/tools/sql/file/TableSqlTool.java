@@ -4,29 +4,34 @@ import java.io.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class TableSql {
+public class TableSqlTool {
 
     public static final String number_regex = "(\\d)+";
     public static final String decimal_regex = "(\\d)+(\\.)(\\d)+";
-    public static final String string_regex = "'.*'";
-    public static final String column_regex = String.format("(%s)|(%s)|(%s)",number_regex,decimal_regex,string_regex);
-    public static final String value_regex = String.format("(\\()(%s)(,(%s))*(\\))", column_regex, column_regex);//todo
+    public static final String string_regex = "'([^()'])*'";
+    public static final String null_regex = "NULL";
+    public static final String column_regex = String.format("(%s)|(%s)|(%s)|(%s)", string_regex, decimal_regex, number_regex, null_regex);
+    public static final String value_regex = String.format("\\((%s)((,(%s))*)\\)", column_regex, column_regex);//todo
     private static final Pattern value_pattern = Pattern.compile(value_regex);
 
     private FileReader fileReader;
     private boolean insertLine = false;
-    private Table table;
+    private String insertStartString;
 
     private String insertSql;
 
-    public TableSql(String file, Table table) throws FileNotFoundException {
+    public TableSqlTool(String file, String tableName) throws FileNotFoundException {
         this.fileReader = new FileReader(file);
-        this.table = table;
+        this.insertStartString = String.format("INSERT INTO `%s` VALUES ", tableName.toUpperCase());
         this.insertSql = "";
     }
 
+//    public String getInsertStartString(){
+//        return this.insertStartString;
+//    }
+
     public boolean insertString(String line) {
-        return line.toUpperCase().indexOf(this.table.getInsertStartString()) >= 0;
+        return line.toUpperCase().indexOf(this.insertStartString) >= 0;
     }
 
     public String readString() throws IOException {
@@ -43,9 +48,15 @@ public class TableSql {
 
     public String subValue() {
         Matcher matcher = value_pattern.matcher(this.insertSql);
+        matcher.reset();
         if (this.isInsertLine() && matcher.find()) {
             String value = matcher.group();
-            this.insertSql = this.insertSql.substring(0, value.length());
+            int start = matcher.start() + value.length() + 1;
+            if (start < this.insertSql.length()) {
+                this.insertSql = this.insertSql.substring(start);
+            } else {
+                this.insertSql = "";
+            }
             return value;
         }
         return null;
@@ -56,11 +67,15 @@ public class TableSql {
             do {
                 String line = this.readString();
                 if (this.isInsertLine()) {
-                    this.insertSql = line.substring(this.table.getInsertStartString().length() - 1);
+                    if (insertString(line)) {
+                        this.insertSql = line.substring(this.insertStartString.length());
+                    } else {
+                        this.insertSql = line;
+                    }
                     break;
                 }
-            } while (true);
-        } else if (!this.insertSql.matches(value_regex)) {
+            } while (true && this.available());
+        } else if (!value_pattern.matcher(this.insertSql).find()) {
             do {
                 this.insertSql += this.readString();
             } while (!this.isInsertLine());

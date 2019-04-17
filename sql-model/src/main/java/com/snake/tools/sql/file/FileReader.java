@@ -32,6 +32,15 @@ public class FileReader {
         return false;
     }
 
+    public String readBytes() throws IOException {
+        byte[] bytes = new byte[read_length];
+        int length = 0;
+        if((length = this.input.read(bytes)) > 0){
+            return new String(bytes);
+        }
+        return null;
+    }
+
     public String readString() throws IOException {
         this.lineStart = this.lineOver == true;
         this.lineOver = false;
